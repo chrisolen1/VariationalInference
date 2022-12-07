@@ -5,7 +5,7 @@ sigma = 3
 K = 5
 n = 1000
 
-set.seed(247)
+set.seed(1)
 mu = rnorm(K, mean=0, sd=sigma)
 cs = rcat(n, rep(1/K, K))
 x = rnorm(n, mean=mu[cs], sd=1)
@@ -17,7 +17,7 @@ mk = rnorm(K)
 sk2 = rgamma(K,5)
 phis = rdirichlet(n, c(1,1,1,1,1))
 
-ELBO = function(mk,  sk2, phis) {
+ELBO = function(mk,  sk2, phis, x, sigma) {
   t = sk2+mk^2
   a = -(1/(2*sigma^2))*sum(t)
   b = 2*sum(sweep(sweep(phis, MARGIN=2, mk, "*"), MARGIN=1, x, "*"))-0.5*sum(sweep(phis, MARGIN=2, t, "*"))
@@ -26,9 +26,9 @@ ELBO = function(mk,  sk2, phis) {
   return(a+b+c+d)
 }
 
-iter = 30
+iter = 100
 elbos = rep(NA, iter+1)
-elbos[1] = ELBO(mk,sk2,phis)
+elbos[1] = ELBO(mk,sk2,phis, x, sigma)
 for (i in 1:iter) {
   phis.new = matrix(nrow=n, ncol=K)
   for (j in 1:n) {
@@ -46,10 +46,13 @@ for (i in 1:iter) {
   sk2 = sk2.new
   mk = mk.new
   
-  elbos[i+1] = ELBO(mk,sk2,phis)
+  elbos[i+1] = ELBO(mk,sk2,phis,x,sigma)
   cat("Iteration: ", i, "ELBO-diff: ", abs(elbos[i+1]-elbos[i]), "\n")
   if (abs(elbos[i+1])<0.1) break
 }
+
+mk
+mu
 
 ggplot(df, aes(x=x, color=mu, fill=mu)) +
   geom_histogram(alpha=0.5) +
@@ -59,8 +62,4 @@ ggplot(df, aes(x=x, color=mu, fill=mu)) +
              linetype="dashed", size=1)
 
 
-mu
-mk
-
-sk2
 
